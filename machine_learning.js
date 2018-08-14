@@ -1,3 +1,5 @@
+'use strict'
+
 const tf = require('@tensorflow/tfjs');
 require('@tensorflow/tfjs-node');
 
@@ -86,21 +88,30 @@ model.compile({
   optimizer: tf.train.adam(.06)
 })
 
-var setenceToTesting = 'hola mi nombre es Alejandro';
-setenceToTesting = setenceToTesting.split(' ');
+function fitMachine () {
+  const startTime = Date.now()
+  model.fit(trainingDataInput, trainingDataOutput, {epochs: 100})
+    .then((history) => {
+      console.log(history);
+      console.log(`FINISH TRAINING IN ${ Date.now() - startTime }`)
+    })
+}
 
-var testingData = [];
+function predict(data) {
+  var setenceToTesting = data
+  setenceToTesting = setenceToTesting.split(' ');
 
-testingData.push(tf.tensor(setenceToTesting.map(item =>
-  convertToBinaryArray(item)
-)))
-console.log(testingData);
+  var testingData = [];
 
-// train/fit our network
-const startTime = Date.now()
-model.fit(trainingDataInput, trainingDataOutput, {epochs: 100})
-  .then((history) => {
-    console.log(history);
-    console.log(Date.now() - startTime);
-    model.predict(testingData).print()
-  })
+  testingData.push(tf.tensor(setenceToTesting.map(item =>
+    convertToBinaryArray(item)
+  )))
+
+  console.log(testingData);
+  model.predict(testingData).print()
+}
+
+module.exports = {
+    fitMachine,
+    predict
+}

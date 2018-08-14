@@ -103,7 +103,13 @@ parcelRequire = (function (modules, cache, entry, globalName) {
 
   // Override the current require with this new one
   return newRequire;
-})({"index.js":[function(require,module,exports) {
+})({"config.js":[function(require,module,exports) {
+module.exports = {
+    port: process.env.PORT || 3000
+};
+},{}],"machine_learning.js":[function(require,module,exports) {
+'use strict';
+
 const tf = require('@tensorflow/tfjs');
 require('@tensorflow/tfjs-node');
 
@@ -188,20 +194,77 @@ model.compile({
   optimizer: tf.train.adam(.06)
 });
 
-var setenceToTesting = 'My fellow citizens I stand here today humbled by the task before us grateful';
-setenceToTesting = setenceToTesting.split(' ');
+function fitMachine() {
+  const startTime = Date.now();
+  model.fit(trainingDataInput, trainingDataOutput, { epochs: 100 }).then(history => {
+    console.log(history);
+    console.log(`FINISH TRAINING IN ${Date.now() - startTime}`);
+  });
+}
 
-var testingData = [];
+function predict(data) {
+  var setenceToTesting = data;
+  setenceToTesting = setenceToTesting.split(' ');
 
-testingData.push(tf.tensor(setenceToTesting.map(item => convertToBinaryArray(item))));
-console.log(testingData);
+  var testingData = [];
 
-// train/fit our network
-const startTime = Date.now();
-model.fit(trainingDataInput, trainingDataOutput, { epochs: 100 }).then(history => {
-  console.log(history);
-  console.log(Date.now() - startTime);
+  testingData.push(tf.tensor(setenceToTesting.map(item => convertToBinaryArray(item))));
+
+  console.log(testingData);
   model.predict(testingData).print();
+}
+
+module.exports = {
+  fitMachine,
+  predict
+};
+},{}],"machine_learning_controller.js":[function(require,module,exports) {
+'use strict';
+
+const machine = require('./machine_learning');
+
+function getPost(req, res) {
+  console.log('POST /api/machine_learning');
+  console.log(req.body.text);
+
+  machine.predict(req.body.text);
+  return res.status(200).send(`All good`);
+}
+
+module.exports = {
+  getPost
+};
+},{"./machine_learning":"machine_learning.js"}],"route.js":[function(require,module,exports) {
+'use strict';
+
+const express = require('express');
+const router = express.Router();
+
+const machineCtrl = require('./machine_learning_controller');
+
+router.route('/').post(machineCtrl.getPost);
+
+module.exports = router;
+},{"./machine_learning_controller":"machine_learning_controller.js"}],"server.js":[function(require,module,exports) {
+const express = require('express');
+const bodyParser = require('body-parser');
+const config = require('./config');
+const machine = require('./machine_learning');
+
+const server = express();
+
+const router = require('./route');
+
+server.use(bodyParser.urlencoded({ extended: false }));
+server.use(bodyParser.json());
+
+server.use('/api/lenguage_recognition', router);
+
+server.listen(config.port, () => {
+  console.log(`API REST corriendo en http://localhost:${config.port}`);
 });
-},{}]},{},["index.js"], null)
-//# sourceMappingURL=/index.map
+
+console.log(`TRAINNING MACHINE WAIT ...`);
+machine.fitMachine();
+},{"./config":"config.js","./machine_learning":"machine_learning.js","./route":"route.js"}]},{},["server.js"], null)
+//# sourceMappingURL=/server.map
